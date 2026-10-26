@@ -484,7 +484,7 @@ class RecurringJob extends React.Component {
         width: 120,
         render: (record) => {
           return (
-            <div>{record.concurrency}</div>
+            <div>{record.task === 'snapshot-group' ? '-' : record.concurrency}</div>
           )
         },
       },

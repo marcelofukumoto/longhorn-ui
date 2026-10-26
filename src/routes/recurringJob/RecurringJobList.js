@@ -78,7 +78,7 @@ function list({ loading, dataSource, rowSelection, height, deleteRecurringJob, e
       width: 120,
       render: (record) => {
         return (
-          <div>{record.concurrency}</div>
+          <div>{record.task === 'snapshot-group' ? '-' : record.concurrency}</div>
         )
       },
     }, {
