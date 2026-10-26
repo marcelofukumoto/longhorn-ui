@@ -239,7 +239,14 @@ const modal = ({
         <span>
           Groups
           {isSnapshotGroup && (
-            <Tooltip title="On each run, the volumes in these groups are snapshotted together as one Snapshot Group.">
+            <Tooltip
+              placement="topLeft"
+              overlayStyle={{ maxWidth: 420 }}
+              title={<div>
+                <p>On each run, the volumes in these groups and the volumes this job is assigned to are snapshotted together as one Snapshot Group.</p>
+                <p>If any of them can&apos;t be included (for example, it is detached, faulted or restoring), the whole run is skipped.</p>
+              </div>}
+            >
               <Icon type="question-circle-o" style={{ marginLeft: 4 }} />
             </Tooltip>
           )}
