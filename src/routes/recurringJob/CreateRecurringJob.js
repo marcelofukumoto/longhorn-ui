@@ -274,6 +274,23 @@ const modal = ({
       ) : null}
     </Form.Item>
   ))
+  // A snapshot-group job copies its labels onto each SnapshotGroup, and the SnapshotGroup webhook
+  // rejects these, so every run would fail. Catch them when the job is saved instead.
+  const snapshotGroupLabelRule = (isKey) => ({
+    validator: (rule, value, callback) => {
+      if (getFieldValue('task') === 'snapshot-group') {
+        if (isKey && value === 'RecurringJob') {
+          callback('Label key RecurringJob is reserved for recurring jobs')
+          return
+        }
+        if (value && value.includes('=')) {
+          callback('Labels cannot contain \'=\'')
+          return
+        }
+      }
+      callback()
+    },
+  })
   const removeLabel = k => {
     const currentKeys = getFieldValue('keysForlabels')
     if (currentKeys.length === 1) {
@@ -306,6 +323,7 @@ const modal = ({
               {
                 required: false,
               },
+              snapshotGroupLabelRule(true),
             ],
           })(<Input placeholder="key" style={{ width: '95%', marginRight: 8 }} />)}
         </Form.Item>
@@ -323,6 +341,7 @@ const modal = ({
               {
                 required: false,
               },
+              snapshotGroupLabelRule(false),
             ],
           })(<Input placeholder="value" style={{ width: '72%', marginRight: 8 }} />)}
           {keysForlabels.length > 1 ? (
