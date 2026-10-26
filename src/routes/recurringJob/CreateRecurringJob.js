@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Form, Input, Icon, Button, Select, InputNumber, Checkbox, Tooltip, Radio } from 'antd'
+import { Form, Input, Icon, Button, Select, InputNumber, Checkbox, Tooltip, Radio, Alert } from 'antd'
 import { ModalBlur, ReactCron } from '../../components'
 import { parseRetainAge } from '../../utils/recurringJob'
 
@@ -41,8 +41,9 @@ const formItemLayoutWithOutForAddLabels = {
   },
 }
 
+// snapshot-group jobs never delete the groups they create, so retain has no effect.
 const noRetain = (val) => {
-  return val === 'snapshot-cleanup' || val === 'filesystem-trim'
+  return val === 'snapshot-cleanup' || val === 'filesystem-trim' || val === 'snapshot-group'
 }
 
 // Tasks that support the age-based retention policy.
@@ -66,6 +67,7 @@ const modal = ({
   },
 }) => {
   const isSystemBackup = getFieldValue('task') === 'system-backup'
+  const isSnapshotGroup = getFieldValue('task') === 'snapshot-group'
 
   function handleOk() {
     validateFields((errors) => {
@@ -233,7 +235,16 @@ const modal = ({
   const formGroups = keys.map((k, index) => (
     <Form.Item
       {...(index === 0 ? formItemLayout : formItemLayoutWithOutLabel)}
-      label={index === 0 ? 'Groups' : ''}
+      label={index === 0 ? (
+        <span>
+          Groups
+          {isSnapshotGroup && (
+            <Tooltip title="On each run, the volumes in these groups are snapshotted together as one Snapshot Group.">
+              <Icon type="question-circle-o" style={{ marginLeft: 4 }} />
+            </Tooltip>
+          )}
+        </span>
+      ) : ''}
       key={k.index}
     >
       {getFieldDecorator(`groups[${k.index}]`, {
@@ -322,7 +333,8 @@ const modal = ({
   const disableAddDefaultGroup = getFieldValue('keys').some((k) => getFieldValue('groups')[k.index] === 'default')
   const isParametersValueRequired = !!getFieldValue('parametersKey')
   const showParametersField = getFieldValue('task') === 'backup' || getFieldValue('task') === 'backup-force-create' || isSystemBackup
-  const showConcurrency = !isSystemBackup
+  // A snapshot-group job creates one SnapshotGroup per run, so concurrency doesn't apply.
+  const showConcurrency = !isSystemBackup && !isSnapshotGroup
   const showGroup = !isSystemBackup
   const showLabels = !isSystemBackup
   const systemBackupParameterOptions = ['if-not-present', 'always', 'disabled']
@@ -331,6 +343,10 @@ const modal = ({
   // Retention policy is only editable when the task is backup / snapshot / system-backup.
   const canEditRetentionPolicy = AGE_BASED_TASKS.includes((getFieldValue('task') || '').replace('-force-create', ''))
   const initialRetainAge = parseRetainAge(isEdit ? item.retainAge : '')
+  let initialRetain = 1
+  if (isEdit) {
+    initialRetain = noRetain(item.task) ? 0 : item.retain
+  }
 
   return (
     <ModalBlur {...modalOpts}>
@@ -379,6 +395,7 @@ const modal = ({
                 ] : [
                   <Option key="backup" value="backup">Backup</Option>,
                   <Option key="snapshot" value="snapshot">Snapshot</Option>,
+                  <Option key="snapshot-group" value="snapshot-group">Snapshot Group</Option>,
                   <Option key="snapshot-delete" value="snapshot-delete">Snapshot Delete</Option>,
                   <Option key="snapshot-cleanup" value="snapshot-cleanup">Snapshot Cleanup</Option>,
                   <Option key="system-backup" value="system-backup">System Backup</Option>,
@@ -399,7 +416,7 @@ const modal = ({
         </div>
         <FormItem label="Retain" hasFeedback {...formItemLayout} style={{ display: isAgeBased ? 'none' : undefined }}>
           {getFieldDecorator('retain', {
-            initialValue: isEdit ? item.retain : 1,
+            initialValue: initialRetain,
             rules: [
               {
                 required: !isAgeBased,
@@ -407,6 +424,15 @@ const modal = ({
             ],
           })(<InputNumber disabled={noRetain(getFieldValue('task'))} style={{ width: '80%' }} min={0} />)}
         </FormItem>
+        {isSnapshotGroup && (
+          <FormItem {...formItemLayoutWithOutLabel}>
+            <Alert
+              type="warning"
+              showIcon
+              message="Snapshot groups created by this job are not deleted automatically. Delete old groups from the Snapshot Groups page before the volumes reach their snapshot limit."
+            />
+          </FormItem>
+        )}
         {isAgeBased && (
           <FormItem label="Retain Age" required {...formItemLayout}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
