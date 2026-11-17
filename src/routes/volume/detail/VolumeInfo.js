@@ -206,8 +206,8 @@ function VolumeInfo({ selectedVolume, snapshotModalState, engineImages, hosts, c
     return text
   }
 
-  const renderLabelTooltip = (title) => (
-    <Tooltip overlayClassName={styles.labelTooltip} title={title}>
+  const renderLabelTooltip = (title, overlayStyle) => (
+    <Tooltip overlayClassName={styles.labelTooltip} overlayStyle={overlayStyle} title={title}>
       <Icon type="info-circle" />
     </Tooltip>
   )
@@ -276,11 +276,14 @@ function VolumeInfo({ selectedVolume, snapshotModalState, engineImages, hosts, c
         <div className={styles.row}>
           <span className={styles.label}>
             <span>NVMe-TCP IO Queues</span>
-            {renderLabelTooltip(<div>
+            {renderLabelTooltip(<div style={{ width: 'min-content' }}>
               <p>NVMe-TCP Number Of IO Queues</p>
-              <p>If 0, the volume inherits the global setting.</p>
+              <p>
+                If 0, the volume inherits the global setting:<br />
+                <span style={{ whiteSpace: 'nowrap' }}>“Default NVMe-TCP Number Of IO Queues”</span>
+              </p>
               <p>Changes apply on the next attach.</p>
-            </div>)}
+            </div>, { maxWidth: 'none' })}
             <span>:</span>
           </span>
           {selectedVolume.nvmeTcpNrIoQueues || 0}
